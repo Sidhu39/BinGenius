@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Bin Sorter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            touch-action: manipulation;
+            overflow: hidden;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            max-width: 100%;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #4ade80;
+            text-shadow: 0 2px 10px rgba(74, 222, 128, 0.3);
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+
+        .status-display {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(74, 222, 128, 0.3);
+            border-radius: 16px;
+            padding: 60px 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .status-text {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #4ade80;
+            margin-bottom: 10px;
+        }
+
+        .detection-info {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .detection-info.active {
+            display: flex;
+        }
+
+        .object-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .confidence {
+            font-size: 1rem;
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+
+        .question {
+            font-size: 1.2rem;
+            color: #cbd5e1;
+            margin-bottom: 30px;
+        }
+
+        .button-container {
+            display: none;
+            gap: 15px;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .button-container.active {
+            display: flex;
+        }
+
+        .bin-button {
+            flex: 1;
+            padding: 30px 20px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-organic {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+        }
+
+        .btn-organic:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.5);
+        }
+
+        .btn-inorganic {
+            background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+            color: white;
+        }
+
+        .btn-inorganic:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(234, 179, 8, 0.5);
+        }
+
+        .feedback {
+            display: none;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-top: 20px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .feedback.active {
+            display: block;
+        }
+
+        .feedback.correct {
+            background: rgba(34, 197, 94, 0.2);
+            border: 2px solid #22c55e;
+            color: #22c55e;
+        }
+
+        .feedback.incorrect {
+            background: rgba(239, 68, 68, 0.2);
+            border: 2px solid #ef4444;
+            color: #ef4444;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(74, 222, 128, 0.3);
+            border-top-color: #4ade80;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-top: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .connection-status {
+            text-align: center;
+            padding: 10px;
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .status-dot.connected {
+            background: #22c55e;
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+        }
+
+        .status-dot.disconnected {
+            background: #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .status-text {
+                font-size: 1.4rem;
+            }
+
+            .object-name {
+                font-size: 1.2rem;
+            }
+
+            .bin-button {
+                padding: 25px 15px;
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>🗑️ AI Bin Sorter</h1>
+        <p class="subtitle">Smart Waste Classification System</p>
+    </header>
+
+    <div class="status-display" id="statusDisplay">
+        <div class="status-text" id="statusText">AI Bin Sorter</div>
+        <div class="loading" id="loadingSpinner" style="display:none;"></div>
+
+        <div class="detection-info" id="detectionInfo">
+            <div class="object-name" id="objectName"></div>
+            <div class="confidence" id="confidence"></div>
+            <div class="question">Where does this object belong?</div>
+        </div>
+    </div>
+
+    <div class="button-container" id="buttonContainer">
+        <button class="bin-button btn-organic" id="btnOrganic">
+            🌱 Organic
+        </button>
+        <button class="bin-button btn-inorganic" id="btnInorganic">
+            ♻️ Inorganic
+        </button>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="connection-status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="connectionText">Connecting to ESP32...</span>
+    </div>
+</div>
+
+<script>
+    const POLL_INTERVAL = 2000; // ms
+
+    let currentDetectionId = null;
+    let currentCategory = null;
+    let isProcessing = false;
+
+    const statusText = document.getElementById('statusText');
+    const detectionInfo = document.getElementById('detectionInfo');
+    const objectName = document.getElementById('objectName');
+    const confidence = document.getElementById('confidence');
+    const buttonContainer = document.getElementById('buttonContainer');
+    const feedback = document.getElementById('feedback');
+    const statusDot = document.getElementById('statusDot');
+    const connectionText = document.getElementById('connectionText');
+    const btnOrganic = document.getElementById('btnOrganic');
+    const btnInorganic = document.getElementById('btnInorganic');
+
+    async function fetchStatus() {
+        try {
+            const res = await fetch('/api/status');
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            setConnectionStatus(!!data.connected, data.esp32_ip);
+        } catch {
+            setConnectionStatus(false, null);
+        }
+    }
+
+    function setConnectionStatus(connected, ip) {
+        if (connected) {
+            statusDot.classList.add('connected');
+            statusDot.classList.remove('disconnected');
+            connectionText.textContent = `Connected to ESP32 (${ip})`;
+        } else {
+            statusDot.classList.add('disconnected');
+            statusDot.classList.remove('connected');
+            connectionText.textContent = 'Disconnected from ESP32';
+        }
+    }
+
+    async function pollDetection() {
+        if (isProcessing) return;
+
+        try {
+            const res = await fetch('/api/detection');
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+
+            if (data.detected) {
+                showDetection(data);
+            } else {
+                resetUI();
+            }
+        } catch (e) {
+            console.error('Detection poll error', e);
+        }
+    }
+
+    function showDetection(det) {
+        currentDetectionId = det.detection_id;
+        currentCategory = det.category;
+
+        statusText.textContent = 'Object Detected!';
+        detectionInfo.classList.add('active');
+        buttonContainer.classList.add('active');
+
+        objectName.textContent = (det.object_name || 'Unknown').toUpperCase();
+        confidence.textContent = `Confidence: ${(det.confidence * 100).toFixed(1)}%`;
+
+        feedback.classList.remove('active', 'correct', 'incorrect');
+    }
+
+    function resetUI() {
+        if (isProcessing) return;
+
+        statusText.textContent = 'AI Bin Sorter';
+        detectionInfo.classList.remove('active');
+        buttonContainer.classList.remove('active');
+        feedback.classList.remove('active', 'correct', 'incorrect');
+
+        currentDetectionId = null;
+        currentCategory = null;
+
+        btnOrganic.disabled = false;
+        btnInorganic.disabled = false;
+    }
+
+    async function submitAnswer(category) {
+        if (!currentDetectionId || isProcessing) return;
+
+        isProcessing = true;
+        btnOrganic.disabled = true;
+        btnInorganic.disabled = true;
+
+        const isCorrect = currentCategory &&
+            currentCategory.toLowerCase() === category.toLowerCase();
+
+        if (!isCorrect) {
+            feedback.textContent = `✗ Incorrect. This is ${currentCategory}. Try again!`;
+            feedback.classList.add('active', 'incorrect');
+            setTimeout(() => {
+                feedback.classList.remove('active');
+                btnOrganic.disabled = false;
+                btnInorganic.disabled = false;
+                isProcessing = false;
+            }, 2000);
+            return;
+        }
+
+        feedback.textContent = '✓ Correct! Bin opening...';
+        feedback.classList.add('active', 'correct');
+
+        try {
+            const res = await fetch('/api/open_bin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    category: category,
+                    detection_id: currentDetectionId
+                })
+            });
+
+            const data = await res.json();
+            if (!data.success) {
+                feedback.textContent = '✗ Failed to open bin. Try again.';
+                feedback.classList.remove('correct');
+                feedback.classList.add('incorrect');
+            }
+        } catch (e) {
+            feedback.textContent = '✗ Communication error. Try again.';
+            feedback.classList.remove('correct');
+            feedback.classList.add('incorrect');
+        }
+
+        setTimeout(() => {
+            isProcessing = false;
+            resetUI();
+        }, 4000);
+    }
+
+    btnOrganic.addEventListener('click', () => submitAnswer('organic'));
+    btnInorganic.addEventListener('click', () => submitAnswer('inorganic'));
+
+    window.addEventListener('load', () => {
+        fetchStatus();
+        setInterval(fetchStatus, 5000);
+        setInterval(pollDetection, POLL_INTERVAL);
+    });
+
+    // Prevent pull-to-refresh on mobile
+    document.body.addEventListener('touchmove', (e) => {
+        if (e.touches.length > 1) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+</script>
+</body>
+</html>
